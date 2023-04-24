@@ -14,18 +14,81 @@ namespace Cviceni1704
         private bool isRunning;
         private List<string> jmena = new List<string>();
         private List<string> hesla = new List<string>();
+        private bool prihlaseno;
+        private int index;
+        private Client prihlasenyClient;
+        private DateTime datumSpusteni;
+        private DateTime datumKonce;
+        private int pocetPrihlasenychOsob;
+        private int chybnaPrihlaseni;
+        private int zadanyPrikazy;
+
+        public int ZadanyPrikazy
+        {
+            get { return zadanyPrikazy; }
+            set { zadanyPrikazy = value; }
+        }
+
+        public int ChybnaPrihlaseni
+        {
+            get { return chybnaPrihlaseni; }
+            set { chybnaPrihlaseni = value; }
+        }
+
+        public int PocetPrihlasenychOsob
+        {
+            get { return pocetPrihlasenychOsob; }
+            set { pocetPrihlasenychOsob = value; }
+        }
+
+        public Client PrihlasenyClient
+        {
+            get { return prihlasenyClient; }
+            set { prihlasenyClient = value; }
+        }
+
+        public int Index
+        {
+            get { return index; }
+            set { index = value; }
+        }
+
+        public bool Prihlaseno
+        {
+            get { return prihlaseno; }
+            set { prihlaseno = value; }
+        }
+
+        public DateTime DatumSpusteni
+        {
+            get { return datumSpusteni; }
+            set { datumSpusteni = value; }
+        }
+
+        public DateTime DatumKonce
+        {
+            get { return datumKonce; }
+            set { datumKonce = value; }
+        }
 
         public MyServer(int port)
         {
             myServer = new TcpListener(System.Net.IPAddress.Any, port);
             myServer.Start();
             isRunning = true;
+            Prihlaseno = false;
+            Index = 1;
+            DatumSpusteni = DateTime.Now;
+            PocetPrihlasenychOsob = 0;
+            ChybnaPrihlaseni = 0;
+            ZadanyPrikazy = 0;
             ServerLoop();
         }
 
         private void ServerLoop()
         {
             Console.WriteLine("Server byl spusten");
+            
             while (isRunning)
             {
                 TcpClient client = myServer.AcceptTcpClient();
@@ -39,61 +102,8 @@ namespace Cviceni1704
             StreamWriter writer = new StreamWriter(client.GetStream(), Encoding.UTF8);
 
 
-            writer.WriteLine("Create account(1) / Sign up(2): ");
-            int choice = int.Parse(reader.ReadLine());
-            switch (choice)
+            while (!Prihlaseno)
             {
-                case 1:
-                    writer.WriteLine("Prihlasovaci jmeno: ");
-                    string jmeno = reader.ReadLine();
-                    writer.WriteLine("Heslo: ");
-                    string heslo = reader.ReadLine();
-                    Client c = new Client(jmeno, heslo);
-                    jmena.Add(jmeno);
-                    hesla.Add(heslo);
-                    TextWriter txt = new StreamWriter("data.txt");
-                    txt.WriteLine(c.ToString());
-                    break;
-
-                case 2:
-                    for (int i = 0; i < 3; i++)
-                    {
-                        writer.WriteLine("Prihlasovaci jmeno: ");
-                        string prihlasovaciJmeno = reader.ReadLine();
-                        writer.WriteLine("Heslo: ");
-                        string prihlasovaciHeslo = reader.ReadLine();
-                        Client checkovaciClient = new Client(prihlasovaciJmeno, prihlasovaciHeslo);
-                        for (int j = 0; j < jmena.Count; j++)
-                        {
-                            if (jmena[j].Equals(prihlasovaciJmeno) && hesla[j].Equals(prihlasovaciHeslo))
-                            {
-                                writer.WriteLine("Prihlaseno");
-                                writer.Flush();
-                            }
-                        }
-                    }
-                    writer.WriteLine("Moc pokusu");
-                    writer.Flush();
-                    break;
-
-            }
-
-
-
-        }
-
-        private void ClientLoop(TcpClient client)
-        {
-            StreamReader reader = new StreamReader(client.GetStream(), Encoding.UTF8);
-            StreamWriter writer = new StreamWriter(client.GetStream(), Encoding.UTF8);
-
-            writer.WriteLine("Byl jsi pripojen");
-            writer.Flush();
-            bool clientConnect = true;
-            string? data = null;
-            string? dataRecive = null;
-
-            for (int a = 0; a < 100; a++) {
 
                 writer.Write("Create account(1) / Sign up(2): ");
                 writer.Flush();
@@ -115,8 +125,9 @@ namespace Cviceni1704
                         break;
 
                     case 2:
-                        for (int i = 0; i < 3; i++)
+                        while (!Prihlaseno && Index <= 3)
                         {
+
                             writer.Write("Prihlasovaci jmeno: ");
                             writer.Flush();
                             string prihlasovaciJmeno = reader.ReadLine();
@@ -128,16 +139,84 @@ namespace Cviceni1704
                             {
                                 if (jmena[j].Equals(prihlasovaciJmeno) && hesla[j].Equals(prihlasovaciHeslo))
                                 {
+                                    Prihlaseno = true;
+                                    PrihlasenyClient = new Client(jmena[j], hesla[j]);
+                                    PocetPrihlasenychOsob++;
                                     writer.WriteLine("Prihlaseno");
                                     writer.Flush();
                                     break;
-                                    
                                 }
                             }
-                            break;
+                            Index++;
+                            ChybnaPrihlaseni++;
                         }
-                        writer.WriteLine("Moc pokusu");
+                        break;
+
+                }
+
+
+
+            }
+        }
+
+        private void ClientLoop(TcpClient client)
+        {
+            StreamReader reader = new StreamReader(client.GetStream(), Encoding.UTF8);
+            StreamWriter writer = new StreamWriter(client.GetStream(), Encoding.UTF8);
+
+            writer.WriteLine("Byl jsi pripojen");
+            writer.Flush();
+            bool clientConnect = true;
+            string? data = null;
+            string? dataRecive = null;
+
+            while(!Prihlaseno) {
+
+                writer.Write("Create account(1) / Sign up(2): ");
+                writer.Flush();
+                int choice = Int32.Parse(reader.ReadLine());
+                switch (choice)
+                {
+                    case 1:
+                        writer.Write("Prihlasovaci jmeno: ");
                         writer.Flush();
+                        string jmeno = reader.ReadLine();
+                        writer.Write("Heslo: ");
+                        writer.Flush();
+                        string heslo = reader.ReadLine();
+                        Client c = new Client(jmeno, heslo);
+                        jmena.Add(jmeno);
+                        hesla.Add(heslo);
+                        //TextWriter txt = new StreamWriter("data.txt");
+                        //txt.WriteLine(c.ToString());
+                        break;
+
+                    case 2:
+                        while (!Prihlaseno && Index <= 3)
+                        {
+
+                            writer.Write("Prihlasovaci jmeno: ");
+                            writer.Flush();
+                            string prihlasovaciJmeno = reader.ReadLine();
+                            writer.Write("Heslo: ");
+                            writer.Flush();
+                            string prihlasovaciHeslo = reader.ReadLine();
+                            Client checkovaciClient = new Client(prihlasovaciJmeno, prihlasovaciHeslo);
+                            for (int j = 0; j < jmena.Count; j++)
+                            {
+                                if (jmena[j].Equals(prihlasovaciJmeno) && hesla[j].Equals(prihlasovaciHeslo))
+                                {
+                                    Prihlaseno = true;
+                                    PrihlasenyClient = new Client(jmena[j], hesla[j]);
+                                    PocetPrihlasenychOsob++;
+                                    writer.WriteLine("Prihlaseno");
+                                    writer.Flush();
+                                    break;
+                                }
+                            }
+                            Index++;
+                            ChybnaPrihlaseni++;
+                        }
                         break;
 
                 }
@@ -154,26 +233,91 @@ namespace Cviceni1704
 
                 if (data == "end")
                 {
+                    ZadanyPrikazy++;
                     clientConnect = false;
                 }
-                if (data == "who")
+                if (data == "who" && Prihlaseno)
                 {
-                    
+                    ZadanyPrikazy++;
+                    writer.WriteLine("Prihlaseny client: "+PrihlasenyClient);
+                    writer.Flush();
                 }
                 if (data == "uptime")
                 {
+                    ZadanyPrikazy++;
+                    DatumKonce = DateTime.Now;
+
+                    writer.WriteLine("Zacatek: " + DatumSpusteni);
+                    writer.Flush();
+                    writer.WriteLine("Soucasny cas: " + datumKonce);
+                    writer.Flush();
 
                 }
                 if (data == "stats")
                 {
-
+                    ZadanyPrikazy++;
+                    writer.WriteLine("Pocet prihlasenych uzivatelu: " + PocetPrihlasenychOsob);
+                    writer.Flush();
+                    writer.WriteLine("Pocet chbnych prihlaseni: " + ChybnaPrihlaseni);
+                    writer.Flush();
+                    writer.WriteLine("Pocet zadanych prikazu: "+ZadanyPrikazy);
+                    writer.Flush();
                 }
                 if (data == "last")
                 {
-
+                    ZadanyPrikazy++;
                 }
                 if (data == "exit")
                 {
+                    ZadanyPrikazy++;
+                    Prihlaseno = false;
+                    writer.WriteLine("Odhlaseno");
+                    writer.Flush();
+                    ClientLoop(client);
+                }
+                if(data == "ohm")
+                {
+                    writer.WriteLine("Vyberte vzorec: I = U / R (1) || U = I * R (2) || R = U / I (3)");
+                    writer.Flush();
+                    int vzorec = Int32.Parse(reader.ReadLine());
+
+                    switch (vzorec) 
+                    {
+                        case 1:
+                            writer.Write("U = ");
+                            writer.Flush();
+                            int napeti1 = Int32.Parse(reader.ReadLine());
+                            writer.Write("R = ");
+                            writer.Flush();
+                            int odpor1 = Int32.Parse(reader.ReadLine());
+                            int proud1 = napeti1 / odpor1;
+                            writer.WriteLine("I = " + napeti1 + " / " + odpor1 +" = "+ proud1+" A");
+                            break;
+
+                        case 2:
+                            writer.Write("I = ");
+                            writer.Flush();
+                            int proud2 = Int32.Parse(reader.ReadLine());
+                            writer.Write("R = ");
+                            writer.Flush();
+                            int odpor2 = Int32.Parse(reader.ReadLine());
+                            int napeti2 = proud2 * odpor2;
+                            writer.WriteLine("U = " + proud2 + " * " + odpor2 + " = " + napeti2 + " V");
+                            break;
+
+                        case 3:
+                            writer.Write("U = ");
+                            writer.Flush();
+                            int napeti3 = Int32.Parse(reader.ReadLine());
+                            writer.Write("I = ");
+                            writer.Flush();
+                            int proud3 = Int32.Parse(reader.ReadLine());
+                            int odpor3 = napeti3 / proud3;
+                            writer.WriteLine("R = " + napeti3 + " / " + proud3 + " = " + odpor3+ " Ohm");
+                            break;
+
+
+                    }
 
                 }
 
